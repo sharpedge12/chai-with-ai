@@ -39,8 +39,7 @@ class BaseAdapter(ABC):
         cleaned = re.sub(r'<[^>]+>', '', cleaned)
         
         # Remove Reddit formatting
-        cleaned = re.sub(r'\
-*\*([^*]+)\*\*', r'\1', cleaned)  # Bold
+        cleaned = re.sub(r'\*\*([^*]+)\*\*', r'\1', cleaned)  # Bold
         cleaned = re.sub(r'\*([^*]+)\*', r'\1', cleaned)      # Italic
         
         # Ensure minimum content length
