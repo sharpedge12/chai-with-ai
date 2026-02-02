@@ -84,7 +84,7 @@ class RedditAdapter(BaseAdapter):
                 item_id = self._generate_item_id(post_id)
                 
                 item = IngestedItem(
-                    id=item_id,  # Include the ID parameter
+                    id=item_id,
                     title=self._clean_title(post.get('title', '')),
                     description=description,
                     url=url,
@@ -92,6 +92,10 @@ class RedditAdapter(BaseAdapter):
                     source_id=post_id,
                     timestamp=timestamp,
                     engagement_score=float(post.get('score', 0)),
+                    # Add engagement metrics
+                    like_count=int(post.get('ups', 0)),
+                    dislike_count=int(post.get('downs', 0)),
+                    comment_count=int(post.get('num_comments', 0)),
                     metadata={
                         'subreddit': subreddit,
                         'comments': post.get('num_comments', 0),
@@ -128,8 +132,6 @@ class RedditAdapter(BaseAdapter):
         
         # Default fallback
         return url
-    
-    # Rest of the methods remain the same...
     
     def _get_full_description(self, post: dict) -> str:
         """Get full description with better handling"""
@@ -175,9 +177,8 @@ class RedditAdapter(BaseAdapter):
             preview = post.get('preview', {})
             if preview.get('enabled') and 'reddit_video_preview' not in preview:
                 # Try to get text from preview
-                images = preview.get('images', [
-])
-                if images and 'variants' in images[1]:
+                images = preview.get('images', [])
+                if images and 'variants' in images[0]:
                     # This is usually an image preview, skip
                     return ""
                 
@@ -193,6 +194,7 @@ class RedditAdapter(BaseAdapter):
         
         # Remove Reddit markdown formatting
         cleaned = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', text)  # Links
+
         cleaned = re.sub(r'\*\*([^*]+)\*\*', r'\1', cleaned)      # Bold
         cleaned = re.sub(r'\*([^*]+)\*', r'\1', cleaned)          # Italic
         cleaned = re.sub(r'~~([^~]+)~~', r'\1', cleaned)          # Strikethrough

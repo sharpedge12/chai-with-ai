@@ -14,8 +14,8 @@ class OllamaClient:
         if self.base_url.endswith('/v1'):
             self.base_url = self.base_url[:-3]
     
-    def generate(self, prompt: str, system_prompt: str = None, temperature: float = 0.1) -> str:
-        """Generate text using Ollama API directly"""
+    def generate(self, prompt: str, system_prompt: str = None, temperature: float = 0.1, timeout: int = 120) -> str:
+        """Generate text using Ollama API directly with configurable timeout"""
         
         # Combine system and user prompts
         full_prompt = prompt
@@ -36,7 +36,7 @@ class OllamaClient:
             response = requests.post(
                 f"{self.base_url}/api/generate",
                 json=payload,
-                timeout=90  # Increased timeout
+                timeout=timeout  # Use configurable timeout
             )
             response.raise_for_status()
             
@@ -48,8 +48,8 @@ class OllamaClient:
         except KeyError as e:
             raise Exception(f"Unexpected LLM response format: {e}")
     
-    def generate_json(self, prompt: str, system_prompt: str = None, schema: Dict[str, Any] = None) -> Dict[str, Any]:
-        """Generate structured JSON response"""
+    def generate_json(self, prompt: str, system_prompt: str = None, schema: Dict[str, Any] = None, timeout: int = 120) -> Dict[str, Any]:
+        """Generate structured JSON response with configurable timeout"""
         
         # More detailed prompt with scoring guidance
         json_prompt = f"""{prompt}
@@ -59,6 +59,7 @@ class OllamaClient:
     Scoring Guidelines:
     - 0.0-0.2: Completely irrelevant, no technical value
     - 0.3-0.4: Somewhat related but lacks depth or actionability  
+
     - 0.5-0.6: Moderately relevant, some technical content
     - 0.7-0.8: Highly relevant, good technical depth
     - 0.9-1.0: Exceptional content, cutting-edge and highly actionable
@@ -68,7 +69,7 @@ class OllamaClient:
     Respond with ONLY a valid JSON object:
     {{"relevance_score": 0.XX, "topic": "specific topic", "why_it_matters": "detailed explanation", "target_audience": "developer/architect/manager/researcher", "decision": true/false, "reasoning": "detailed reasoning for the score"}}"""
         
-        response_text = self.generate(json_prompt, system_prompt, temperature=0.3)  # Increased temperature
+        response_text = self.generate(json_prompt, system_prompt, temperature=0.3, timeout=timeout)
         
         # Clean up the response
         response_text = response_text.strip()
@@ -105,7 +106,7 @@ class OllamaClient:
     def test_connection(self) -> bool:
         """Test if Ollama is running and model is available"""
         try:
-            response = self.generate("Hello, respond with just 'OK'", temperature=0.1)
+            response = self.generate("Hello, respond with just 'OK'", temperature=0.1, timeout=30)
             return "OK" in response or len(response) > 0
         except Exception as e:
             print(f"LLM connection test failed: {e}")

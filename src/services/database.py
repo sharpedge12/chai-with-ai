@@ -31,6 +31,9 @@ class DatabaseManager:
                     engagement_score REAL,
                     full_text TEXT,
                     metadata TEXT,  -- JSON
+                    like_count INTEGER,
+                    dislike_count INTEGER,
+                    comment_count INTEGER,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     UNIQUE(source_type, source_id)
                 );
@@ -43,6 +46,8 @@ class DatabaseManager:
                     decision BOOLEAN NOT NULL,
                     reasoning TEXT,
                     extracted_data TEXT,  -- JSON
+                    star_rating TEXT,
+                    tags TEXT,  -- JSON array
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (item_id) REFERENCES ingested_items (id),
                     UNIQUE(item_id, persona)
@@ -60,7 +65,8 @@ class DatabaseManager:
                 CREATE TABLE IF NOT EXISTS delivery_log (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     digest_id TEXT NOT NULL,
-                    channel TEXT NOT NULL,
+                    channel
+ TEXT NOT NULL,
                     status TEXT NOT NULL,
                     error_message TEXT,
                     delivered_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -94,13 +100,15 @@ class DatabaseManager:
                 conn.execute("""
                     INSERT INTO ingested_items 
                     (id, title, description, url, source_type, source_id, 
-                     timestamp, engagement_score, full_text, metadata)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     timestamp, engagement_score, full_text, metadata, 
+                     like_count, dislike_count, comment_count)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     item.id, item.title, item.description, item.url,
                     item.source_type.value, item.source_id, item.timestamp,
                     item.engagement_score, item.full_text,
-                    json.dumps(item.metadata) if item.metadata else None
+                    json.dumps(item.metadata) if item.metadata else None,
+                    item.like_count, item.dislike_count, item.comment_count
                 ))
                 return True
             except sqlite3.IntegrityError:
@@ -136,7 +144,10 @@ class DatabaseManager:
                     timestamp=datetime.fromisoformat(row['timestamp']),
                     engagement_score=row['engagement_score'],
                     full_text=row['full_text'],
-                    metadata=json.loads(row['metadata']) if row['metadata'] else None
+                    metadata=json.loads(row['metadata']) if row['metadata'] else None,
+                    like_count=row['like_count'],
+                    dislike_count=row['dislike_count'],
+                    comment_count=row['comment_count']
                 ))
             
             return items
@@ -147,15 +158,17 @@ class DatabaseManager:
             try:
                 conn.execute("""
                     INSERT INTO evaluations 
-                    (item_id, persona, relevance_score, decision, reasoning, extracted_data)
-                    VALUES (?, ?, ?, ?, ?, ?)
+                    (item_id, persona, relevance_score, decision, reasoning, extracted_data, star_rating, tags)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     evaluation.item_id,
                     evaluation.persona.value,
                     evaluation.relevance_score,
                     evaluation.decision,
                     evaluation.reasoning,
-                    json.dumps(evaluation.extracted_data)
+                    json.dumps(evaluation.extracted_data),
+                    evaluation.star_rating,
+                    json.dumps(evaluation.tags) if evaluation.tags else None
                 ))
                 return True
             except sqlite3.IntegrityError:
@@ -178,7 +191,9 @@ class DatabaseManager:
                     relevance_score=row['relevance_score'],
                     decision=bool(row['decision']),
                     reasoning=row['reasoning'],
-                    extracted_data=json.loads(row['extracted_data']) if row['extracted_data'] else {}
+                    extracted_data=json.loads(row['extracted_data']) if row['extracted_data'] else {},
+                    star_rating=row['star_rating'],
+                    tags=json.loads(row['tags']) if row['tags'] else []
                 )
             return None
 
@@ -196,6 +211,24 @@ class DatabaseManager:
                 counts[row['persona']] = row['count']
             
             return counts
+        
+    def update_evaluation_tags(self, item_id: str, persona: PersonaType, tags: list) -> bool:
+        """Update tags for existing evaluation"""
+        with self.get_connection() as conn:
+            try:
+                conn.execute("""
+                    UPDATE evaluations 
+                    SET tags = ?
+                    WHERE item_id = ? AND persona = ?
+                """, (
+                    json.dumps(tags) if tags else None,
+                    item_id,
+                    persona.value
+                ))
+                return True
+            except Exception as e:
+                print(f"Failed to update tags: {e}")
+                return False
 
 
 # Global database instance

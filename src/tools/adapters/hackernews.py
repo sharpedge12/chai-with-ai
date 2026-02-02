@@ -37,7 +37,6 @@ class HackerNewsAdapter(BaseAdapter):
             print(f"Error fetching Hacker News: {e}")
             return []
     
-    # Make sure the _fetch_story method includes the ID:
     def _fetch_story(self, story_id: int) -> Optional[IngestedItem]:
         """Fetch individual story details"""
         try:
@@ -56,7 +55,7 @@ class HackerNewsAdapter(BaseAdapter):
             item_id = self._generate_item_id(str(story_id))
             
             return IngestedItem(
-                id=item_id,  # Include the ID parameter
+                id=item_id,
                 title=data.get('title', ''),
                 description=data.get('text', '')[:500] if data.get('text') else '',
                 url=data.get('url', ''),
@@ -64,6 +63,9 @@ class HackerNewsAdapter(BaseAdapter):
                 source_id=str(story_id),
                 timestamp=datetime.fromtimestamp(data.get('time', 0)),
                 engagement_score=float(data.get('score', 0)),
+                # Add engagement metrics
+                like_count=data.get('score', 0),  # HN uses score as upvotes
+                comment_count=data.get('descendants', 0),
                 metadata={
                     'comments': data.get('descendants', 0),
                     'author': data.get('by', '')

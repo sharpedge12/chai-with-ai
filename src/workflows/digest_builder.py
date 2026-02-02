@@ -9,6 +9,7 @@ from src.services.database import db
 from src.services.config import config
 from src.models.schemas import PersonaType
 from src.services.telegram_delivery import telegram_delivery
+from src.services.tts_service import tts_service
 
 
 class DigestBuilder:
@@ -106,12 +107,12 @@ class DigestBuilder:
         return results
     
     def build_genai_digest(self) -> Dict[str, Any]:
-        """Build GenAI News digest with quality filtering"""
+        """Build GenAI News digest with enhanced features"""
         print("  📝 Building GenAI News digest...")
         
         with db.get_connection() as conn:
             cursor = conn.execute("""
-                SELECT i.*, e.relevance_score, e.reasoning, e.extracted_data
+                SELECT i.*, e.relevance_score, e.reasoning, e.extracted_data, e.star_rating, e.tags
                 FROM ingested_items i
                 JOIN evaluations e ON i.id = e.item_id
                 WHERE e.persona = 'genai_news' AND e.decision = 1
@@ -135,12 +136,8 @@ class DigestBuilder:
             if self._should_include_item(item_dict):
                 filtered_items.append(item_dict)
             
-            # Stop when we have enough quality items
             if len(filtered_items) >= 15:
                 break
-        
-        # Ensure source diversity
-        # filtered_items = self._ensure_source_diversity(filtered_items)
         
         print(f"    ✅ After filtering: {len(filtered_items)} quality items")
         
@@ -148,20 +145,31 @@ class DigestBuilder:
             print("    ⚠️  No items passed quality filter")
             return {"items": [], "count": 0}
         
-        # Build digest content
+        # Build digest content with proper timestamp formatting
+        current_time = datetime.now()
+        formatted_time = current_time.strftime('%B %d, %Y at %I:%M %p')  # e.g., "February 02, 2026 at 05:17 PM"
+        
         digest = {
             "persona": "GenAI News",
-            "generated_at": datetime.now().isoformat(),
+            "generated_at": formatted_time,  # Human-readable format
+            "generated_timestamp": current_time.isoformat(),  # Keep ISO for programmatic use
             "count": len(filtered_items),
             "items": [],
-            "summary": f"🤖 GenAI News Digest - {len(filtered_items)} High-Quality Technical AI/ML Updates"
+            "summary": f'"🤖 GenAI News Digest - {len(filtered_items)} High-Quality Technical AI/ML Updates"'  # Add quotes
         }
         
         for item in filtered_items:
             try:
                 extracted_data = json.loads(item['extracted_data']) if item['extracted_data'] else {}
+                tags = json.loads(item['tags']) if item['tags'] else []
             except:
                 extracted_data = {}
+                tags = []
+            
+            # Ensure why_it_matters has quotes
+            why_it_matters = extracted_data.get('why_it_matters', '')
+            if why_it_matters and not (why_it_matters.startswith('"') and why_it_matters.endswith('"')):
+                why_it_matters = f'"{why_it_matters}"'
             
             digest_item = {
                 "title": item['title'],
@@ -169,11 +177,16 @@ class DigestBuilder:
                 "description": self._clean_description(item['description']),
                 "source": item['source_type'],
                 "score": item['relevance_score'],
+                "star_rating": item.get('star_rating', '⭐'),
+                "tags": tags,
                 "topic": extracted_data.get('topic', 'AI/ML'),
-                "why_it_matters": extracted_data.get('why_it_matters', ''),
+                "why_it_matters": why_it_matters,
                 "target_audience": extracted_data.get('target_audience', 'developer'),
                 "reasoning": item['reasoning'][:200] if item['reasoning'] else '',
                 "engagement": item['engagement_score'],
+                "like_count": item.get('like_count'),
+                "dislike_count": item.get('dislike_count'),
+                "comment_count": item.get('comment_count'),
                 "timestamp": item['timestamp']
             }
             digest['items'].append(digest_item)
@@ -181,20 +194,25 @@ class DigestBuilder:
         # Save digest
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         self._save_digest(digest, f"genai_news_{timestamp}")
-
+        
+        # Generate audio summary
+        print("  🔊 Generating audio summary...")
+        audio_path = tts_service.generate_audio_summary(digest)
+        if audio_path:
+            digest['audio_summary_path'] = audio_path
+        
         # Deliver digest
         self.deliver_digest(digest)
         
         return digest
     
     def build_product_digest(self) -> Dict[str, Any]:
-        """Build Product Ideas digest with
- quality filtering"""
+        """Build Product Ideas digest with enhanced features"""
         print("  📝 Building Product Ideas digest...")
         
         with db.get_connection() as conn:
             cursor = conn.execute("""
-                SELECT i.*, e.relevance_score, e.reasoning, e.extracted_data
+                SELECT i.*, e.relevance_score, e.reasoning, e.extracted_data, e.star_rating, e.tags
                 FROM ingested_items i
                 JOIN evaluations e ON i.id = e.item_id
                 WHERE e.persona = 'product_ideas' AND e.decision = 1
@@ -218,12 +236,8 @@ class DigestBuilder:
             if self._should_include_item(item_dict):
                 filtered_items.append(item_dict)
             
-            # Stop when we have enough quality items
             if len(filtered_items) >= 15:
                 break
-        
-        # Ensure source diversity
-        # filtered_items = self._ensure_source_diversity(filtered_items)
         
         print(f"    ✅ After filtering: {len(filtered_items)} quality items")
         
@@ -231,20 +245,31 @@ class DigestBuilder:
             print("    ⚠️  No items passed quality filter")
             return {"items": [], "count": 0}
         
-        # Build digest content
+        # Build digest content with proper timestamp formatting
+        current_time = datetime.now()
+        formatted_time = current_time.strftime('%B %d, %Y at %I:%M %p')
+        
         digest = {
             "persona": "Product Ideas",
-            "generated_at": datetime.now().isoformat(),
+            "generated_at": formatted_time,  # Human-readable format
+            "generated_timestamp": current_time.isoformat(),  # Keep ISO for programmatic use
             "count": len(filtered_items),
             "items": [],
-            "summary": f"💡 Product Ideas Digest - {len(filtered_items)} High-Quality Launches & Concepts"
+            "summary": f'"💡 Product Ideas Digest - {len(filtered_items)} High-Quality Launches & Concepts"'  # Add quotes
         }
         
         for item in filtered_items:
             try:
                 extracted_data = json.loads(item['extracted_data']) if item['extracted_data'] else {}
+                tags = json.loads(item['tags']) if item['tags'] else []
             except:
                 extracted_data = {}
+                tags = []
+            
+            # Ensure why_it_matters has quotes
+            why_it_matters = extracted_data.get('why_it_matters', '')
+            if why_it_matters and not (why_it_matters.startswith('"') and why_it_matters.endswith('"')):
+                why_it_matters = f'"{why_it_matters}"'
             
             digest_item = {
                 "title": item['title'],
@@ -252,11 +277,16 @@ class DigestBuilder:
                 "description": self._clean_description(item['description']),
                 "source": item['source_type'],
                 "score": item['relevance_score'],
-                "idea_type": extracted_data.get('idea_type', 'concept'),
-                "problem_statement": extracted_data.get('problem_statement', ''),
-                "solution_summary": extracted_data.get('solution_summary', ''),
+                "star_rating": item.get('star_rating', '⭐'),
+                "tags": tags,
+                "topic": extracted_data.get('topic', 'Product'),
+                "why_it_matters": why_it_matters,
+                "target_audience": extracted_data.get('target_audience', 'entrepreneur'),
                 "reasoning": item['reasoning'][:200] if item['reasoning'] else '',
                 "engagement": item['engagement_score'],
+                "like_count": item.get('like_count'),
+                "dislike_count": item.get('dislike_count'),
+                "comment_count": item.get('comment_count'),
                 "timestamp": item['timestamp']
             }
             digest['items'].append(digest_item)
@@ -264,6 +294,12 @@ class DigestBuilder:
         # Save digest
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         self._save_digest(digest, f"product_ideas_{timestamp}")
+        
+        # Generate audio summary
+        print("  🔊 Generating audio summary...")
+        audio_path = tts_service.generate_audio_summary(digest)
+        if audio_path:
+            digest['audio_summary_path'] = audio_path
         
         self.deliver_digest(digest)
         
@@ -313,7 +349,7 @@ class DigestBuilder:
         print(f"    📄 Saved: {json_path.name}, {md_path.name}")
     
     def _convert_to_markdown(self, digest: Dict[str, Any]) -> str:
-        """Convert digest to Markdown format with quality metrics"""
+        """Convert digest to enhanced Markdown format"""
         md = f"# {digest['summary']}\n\n"
         md += f"**Generated:** {digest['generated_at']}\n"
         md += f"**Items:** {digest['count']}\n"
@@ -328,46 +364,106 @@ class DigestBuilder:
             md += f"**High Quality Items (≥0.7):** {high_quality_count}/{len(scores)}\n"
             md += f"**Score Range:** {min(scores):.2f} - {max(scores):.2f}\n"
         
+        # Add audio summary info
+        if digest.get('audio_summary_path'):
+            md += f"**🔊 Audio Summary:** Available\n"
+        
         md += "\n---\n\n"
         
         if digest['count'] == 0:
             md += "No high-quality items found for this digest.\n"
             return md
         
-        for i, item in enumerate(digest['items'], 1):
-            # Better title formatting
-            title = item['title'][:80] + "..." if len(item['title']) > 80 else item['title']
-            md += f"## {i}. [{title}]({item['url']})\n\n"
-            
-            # Enhanced metadata
-            md += f"**Score:** {item['score']:.2f} | **Source:** {item['source']} | **Engagement:** {item.get('engagement', 'N/A')}\n\n"
-            
-            if digest['persona'] == 'GenAI News':
-                md += f"**Topic:** {item.get('topic', 'N/A')}\n"
-                md += f"**Target Audience:** {item.get('target_audience', 'N/A')}\n\n"
-                if item.get('why_it_matters'):
-                    md += f"**Why it matters:** {item['why_it_matters']}\n\n"
-            
-            elif digest['persona'] == 'Product Ideas':
-                md += f"**Idea Type:** {item.get('idea_type', 'N/A')}\n"
-                if item.get('problem_statement'):
-                    md += f"**Problem:** {item['problem_statement']}\n"
-                if item.get('solution_summary'):
-                    md += f"**Solution:** {item['solution_summary']}\n"
-                md += "\n"
-            
-            # Description
-            description = item['description']
-            if description and "Content summary not available" not in description:
-                md += f"{description}\n\n"
-            else:
-                md += f"*[View full content at source link above]*\n\n"
-            
-            # Enhanced reasoning
-            reasoning = item['reasoning'][:150] + "..." if len(item['reasoning']) > 150 else item['reasoning']
-            md += f"**Why it matters:** {reasoning}\n\n"
-            md += "---\n\n"
+        # Process items without duplication - collect unique items first
+        unique_items = {}
+        for item in digest['items']:
+            item_id = item.get('url', item.get('title', ''))  # Use URL or title as unique identifier
+            if item_id not in unique_items:
+                unique_items[item_id] = item
         
+        # Group unique items by their primary tag (first tag)
+        tagged_items = {}
+        untagged_items = []
+        
+        for item in unique_items.values():
+            tags = item.get('tags', [])
+            if tags:
+                # Use only the first tag to avoid duplication
+                primary_tag = tags[0]
+                if primary_tag not in tagged_items:
+                    tagged_items[primary_tag] = []
+                tagged_items[primary_tag].append(item)
+            else:
+                untagged_items.append(item)
+        
+        # Display items by tags
+        item_counter = 1
+        for tag, items in tagged_items.items():
+            # md += f"## 🏷️ {tag.upper()}\n\n"
+            for item in items:
+                md += self._format_item_markdown(item, item_counter)
+                item_counter += 1
+        
+        # Display untagged items
+        if untagged_items:
+            md += f"## 📰 OTHER\n\n"
+            for item in untagged_items:
+                md += self._format_item_markdown(item, item_counter)
+                item_counter += 1
+        
+        return md
+    
+    def _format_item_markdown(self, item: Dict[str, Any], counter: int) -> str:
+        """Format individual item for markdown"""
+        title = item['title'][:80] + "..." if len(item['title']) > 80 else item['title']
+        md = f"### {counter}. [{title}]({item['url']})\n\n"
+        
+        # Enhanced metadata with engagement
+        md += f"**Rating:** {item.get('star_rating', '⭐')} | **Source:** {item['source']} | **Engagement:** {item.get('engagement', 'N/A')}"
+        
+        # Add engagement metrics if available
+        engagement_parts = []
+        if item.get('like_count') is not None:
+            engagement_parts.append(f"👍 {item['like_count']}")
+        if item.get('dislike_count') is not None:
+            engagement_parts.append(f"👎 {item['dislike_count']}")
+        if item.get('comment_count') is not None:
+            engagement_parts.append(f"💬 {item['comment_count']}")
+        
+        if engagement_parts:
+            md += f" | **Metrics:** {' | '.join(engagement_parts)}"
+        
+        md += "\n\n"
+        
+        # Tags - show all tags but don't duplicate content
+        tags = item.get('tags', [])
+        if tags:
+            tag_emojis = {'llm': '🤖', 'research': '🔬', 'tools': '🛠️', 'tutorial': '📚', 'industry': '🏢', 
+                         'saas': '💼', 'ai-tool': '🤖', 'startup': '🚀', 'funding': '💰'}
+            tag_display = []
+            # for tag in tags:
+                # emoji = tag_emojis.get(tag, '🏷️')
+                # tag_display.append(f"{emoji} {tag}")
+            # md += f"**Tags:** {' | '.join(tag_display)}\n\n"
+        
+        # Topic and audience
+        if item.get('topic'):
+            md += f"**Topic:** {item['topic']}\n"
+        if item.get('target_audience'):
+            md += f"**Target Audience:** {item['target_audience']}\n\n"
+        
+        # Why it matters (already has quotes from digest building)
+        if item.get('why_it_matters'):
+            md += f"**Why it matters:** {item['why_it_matters']}\n\n"
+        
+        # Description
+        description = item['description']
+        if description and "Content summary not available" not in description:
+            md += f"{description}\n\n"
+        else:
+            md += f"*[View full content at source link above]*\n\n"
+        
+        md += "---\n\n"
         return md
     
     def deliver_digest(self, digest: Dict[str, Any]) -> bool:
@@ -388,9 +484,6 @@ class DigestBuilder:
                 print("    ⚠️  Telegram delivery not configured")
         
         return delivered
-    
-
-
 
 
 # Global digest builder

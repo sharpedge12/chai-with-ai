@@ -17,7 +17,7 @@ from src.tools.adapters.reddit import RedditAdapter
 from src.tools.adapters.rss import RSSAdapter
 from src.tools.evaluators import genai_evaluator, product_evaluator
 from src.models.schemas import PersonaType
-from src.workflows.digest_builder import digest_builder  # Add this import
+from src.workflows.digest_builder import digest_builder
 
 # Rest of your functions remain the same...
 
@@ -125,7 +125,7 @@ def evaluate_content(limit: int = None, force: bool = False):
                     
                     if db.save_evaluation(evaluation):
                         evaluated_count += 1
-                        print(f"    ✅ GenAI: {'Relevant' if evaluation.decision else 'Not relevant'} (score: {evaluation.relevance_score:.2f})")
+                        print(f"    ✅ GenAI: {'Relevant' if evaluation.decision else 'Not relevant'} ({evaluation.star_rating})")
                     else:
                         print(f"    ❌ Failed to save GenAI evaluation")
             
@@ -148,7 +148,7 @@ def evaluate_content(limit: int = None, force: bool = False):
                     
                     if db.save_evaluation(evaluation):
                         evaluated_count += 1
-                        print(f"    ✅ Product: {'Relevant' if evaluation.decision else 'Not relevant'} (score: {evaluation.relevance_score:.2f})")
+                        print(f"    ✅ Product: {'Relevant' if evaluation.decision else 'Not relevant'} ({evaluation.star_rating})")
                     else:
                         print(f"    ❌ Failed to save Product evaluation")
                         
@@ -197,13 +197,13 @@ def show_status():
         product_eval = db.get_evaluation(item.id, PersonaType.PRODUCT_IDEAS)
         
         if genai_eval:
-            print(f"    GenAI: {'✅' if genai_eval.decision else '❌'} ({genai_eval.relevance_score:.2f})")
+            print(f"    GenAI: {'✅' if genai_eval.decision else '❌'} ({genai_eval.star_rating})")
         if product_eval:
-            print(f"    Product: {'✅' if product_eval.decision else '❌'} ({product_eval.relevance_score:.2f})")
+            print(f"    Product: {'✅' if product_eval.decision else '❌'} ({product_eval.star_rating})")
         print()
 
 def generate_digests():
-    """Generate and save digests"""
+    """Generate and save digests with audio"""
     print("📝 Generating digests...")
     
     try:
@@ -214,6 +214,11 @@ def generate_digests():
         if total_items > 0:
             print(f"✅ Generated digests with {total_items} total items!")
             print(f"📁 Check the 'output' folder for your digest files")
+            
+            # Check for audio summaries
+            audio_count = sum(1 for digest in results.values() if digest.get('audio_summary_path'))
+            if audio_count > 0:
+                print(f"🔊 Generated {audio_count} audio summaries in 'output/audio' folder")
         else:
             print("⚠️  No approved items found. Try evaluating more content first.")
             print("💡 Suggestion: Run 'python -m src.cli.main evaluate 20' to evaluate more items")
@@ -243,6 +248,61 @@ def test_telegram():
         print("❌ Failed to send test message")
         print("💡 Check your credentials and internet connection")
 
+def fix_missing_tags():
+    """Fix missing tags in existing evaluations"""
+    print("🏷️ Fixing missing tags in existing evaluations...")
+    
+    # Get all evaluations without tags
+    with db.get_connection() as conn:
+        cursor = conn.execute("""
+            SELECT e.item_id, e.persona, i.title, i.description, i.source_type
+            FROM evaluations e
+            JOIN ingested_items i ON e.item_id = i.id
+            WHERE e.tags IS NULL OR e.tags = '[]' OR e.tags = ''
+        """)
+        
+        items_to_fix = cursor.fetchall()
+    
+    if not items_to_fix:
+        print("✅ No items need tag fixes")
+        return
+    
+    print(f"📊 Found {len(items_to_fix)} evaluations missing tags")
+    
+    fixed_count = 0
+    for row in items_to_fix:
+        try:
+            # Create a mock item for tag assignment
+            from src.models.schemas import IngestedItem, SourceType, PersonaType
+            from datetime import datetime
+            
+            mock_item = IngestedItem(
+                id=row['item_id'],
+                title=row['title'],
+                description=row['description'],
+                url="",
+                source_type=SourceType(row['source_type']),
+                source_id="",
+                timestamp=datetime.now()
+            )
+            
+            # Assign fallback tags based on persona
+            if row['persona'] == 'genai_news':
+                tags = genai_evaluator._assign_fallback_tags(mock_item)
+            else:
+                tags = product_evaluator._assign_fallback_tags(mock_item)
+            
+            # Update the evaluation
+            persona = PersonaType(row['persona'])
+            if db.update_evaluation_tags(row['item_id'], persona, tags):
+                fixed_count += 1
+                print(f"  ✅ Fixed tags for: {row['title'][:50]}... → {tags}")
+            
+        except Exception as e:
+            print(f"  ❌ Failed to fix: {row['title'][:50]}... → {e}")
+    
+    print(f"🎉 Fixed tags for {fixed_count}/{len(items_to_fix)} evaluations")
+
 
 def main():
     """Main CLI entry point"""
@@ -259,14 +319,11 @@ def main():
         print("  status   - Show database status")
         print("  clear    - Clear all data from database")
         print("  telegram - Test Telegram delivery")
+        print("  fix-tags - Fix missing tags in existing evaluations") 
         print("  run      - Full pipeline (fetch + evaluate + digest)")
         return
     
     command = sys.argv[1]
-    
-    # Add this case
-
-
     
     if command == "test":
         if test_setup():
@@ -311,7 +368,8 @@ def main():
             print("✅ Complete pipeline finished!")
         else:
             print("❌ Setup test failed, aborting pipeline")
-    
+    elif command == "fix-tags":
+        fix_missing_tags()
     else:
         print(f"Unknown command: {command}")
 

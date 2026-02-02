@@ -27,6 +27,10 @@ class IngestedItem:
     engagement_score: Optional[float] = None
     full_text: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
+    # New fields for engagement metrics
+    like_count: Optional[int] = None
+    dislike_count: Optional[int] = None
+    comment_count: Optional[int] = None
 
 @dataclass
 class EvaluationResult:
@@ -37,6 +41,9 @@ class EvaluationResult:
     decision: bool  # Include in digest
     reasoning: str
     extracted_data: Dict[str, Any]  # Persona-specific fields
+    # New fields
+    tags: List[str] = None  # Content tags
+    star_rating: str = None  # Star representation
     
 @dataclass
 class DigestItem:
