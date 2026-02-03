@@ -1,0 +1,135 @@
+{
+  "persona": "GenAI News",
+  "generated_at": "February 03, 2026 at 03:08 PM",
+  "generated_timestamp": "2026-02-03T15:08:01.980616",
+  "count": 6,
+  "items": [
+    {
+      "title": "ASGD-DT: 72% FLOP Reduction in Neural Network Training via Meta-Learned Gradient Prediction",
+      "url": "https://www.reddit.com/r/MachineLearning/comments/1quhw7s/p_asgddt_72_flop_reduction_in_neural_network/",
+      "description": "\"I built an optimizer that predicts which gradients matter before computing them. Results: 72% reduction in training FLOPs with &lt;2% accuracy loss. Key insight: 40-60% of gradient computations are negligible in any given step. A tiny predictor network (0.\"",
+      "source": "reddit",
+      "score": 0.95,
+      "star_rating": "⭐⭐⭐⭐⭐",
+      "tags": [
+        "llm",
+        "research"
+      ],
+      "topic": "llm",
+      "why_it_matters": "\"Reducing FLOPs in neural network training can significantly improve efficiency and reduce costs for large-scale AI applications.\"",
+      "target_audience": "developer/architect/researcher",
+      "reasoning": "The content provides a new optimizer technique that reduces training FLOPs by 72% with minimal accuracy loss. This is relevant to developers and researchers working on large-scale AI applications who ",
+      "engagement": 3.0,
+      "like_count": 3,
+      "dislike_count": 0,
+      "comment_count": 4,
+      "timestamp": "2026-02-03 09:40:01"
+    },
+    {
+      "title": "What settings are best for stepfun-ai/Step-3.5-Flash-Int4 on llama.cpp ???",
+      "url": "https://www.reddit.com/r/LocalLLaMA/comments/1qui1ir/what_settings_are_best_for/",
+      "description": "\"I'm getting a LOT of repetition in the thinking with llama-server and: -ctx-size 80000 -batch-size 4096 -ubatch-size 2048 -fit on -flash-attn on -cache-type-k q8_0 -cache-type-v q8_0 -cont-batching -kv-unified -jinja -mlock -no-mmap -numa distribute -op-offload -repack -slots -parallel 1 -threads...\"",
+      "source": "reddit",
+      "score": 0.95,
+      "star_rating": "⭐⭐⭐⭐⭐",
+      "tags": [
+        "llm",
+        "ml-ops"
+      ],
+      "topic": "ml-ops",
+      "why_it_matters": "\"This content discusses optimizing settings for a specific large language model (LLM) on a specific hardware platform, which is crucial for practitioners to achieve optimal performance and efficiency.\"",
+      "target_audience": "developer/architect",
+      "reasoning": "The content provides technical details about the settings for a specific LLM on a specific hardware platform, making it actionable for developers and architects. The focus is on optimizing performance",
+      "engagement": 2.0,
+      "like_count": 2,
+      "dislike_count": 0,
+      "comment_count": 2,
+      "timestamp": "2026-02-03 09:47:18"
+    },
+    {
+      "title": "I built Qwen3-TTS Studio – Clone your voice and generate podcasts locally, no ElevenLabs needed",
+      "url": "https://www.reddit.com/r/LocalLLaMA/comments/1quhtzi/i_built_qwen3tts_studio_clone_your_voice_and/",
+      "description": "\"Hey everyone, I've been using Qwen3-TTS and found the existing demo a bit limited for what I wanted to do. So I built a proper interface with fine-grained control and a killer feature: automated podcast generation. What it does: 🎙️ Clone any voice with just a 3-second audio sample 🎚️ Fine-tune...\"",
+      "source": "reddit",
+      "score": 0.93,
+      "star_rating": "⭐⭐⭐⭐⭐",
+      "tags": [
+        "tools",
+        "tutorial"
+      ],
+      "topic": "tools",
+      "why_it_matters": "\"This content introduces a new tool for text-to-speech generation and podcast creation, which can be useful for developers, architects, managers, and researchers working on AI projects.\"",
+      "target_audience": "developer/architect",
+      "reasoning": "The content provides technical details about the tool's functionality and actionable steps to use it. It also presents a novel feature (automated podcast generation) that can be applied in various AI ",
+      "engagement": 12.0,
+      "like_count": 12,
+      "dislike_count": 0,
+      "comment_count": 2,
+      "timestamp": "2026-02-03 09:36:59"
+    },
+    {
+      "title": "Qwen3-TTS Studio - local voice cloning + podcast generation",
+      "url": "https://www.reddit.com/r/artificial/comments/1qui9qt/qwen3tts_studio_local_voice_cloning_podcast/",
+      "description": "\"Open-source voice cloning + multi-speaker podcast tool. GPT 5.2 generates scripts, Qwen3-TTS handles synthesis locally. Modular architecture - swap the LLM for Llama, Mistral, whatever. GitHub: https://github.com/bc-dunia/qwen3-TTS-studio\"",
+      "source": "reddit",
+      "score": 0.93,
+      "star_rating": "⭐⭐⭐⭐⭐",
+      "tags": [
+        "tools",
+        "open-source"
+      ],
+      "topic": "tools",
+      "why_it_matters": "\"This tool allows developers to create voice clones and generate podcasts using open-source software, which can have applications in various fields such as voice assistants, entertainment, and more.\"",
+      "target_audience": "developer/architect",
+      "reasoning": "The content provides a brief explanation of how the tool works (technical depth), it is actionable for developers who want to apply this knowledge in their projects, it presents new information about ",
+      "engagement": 2.0,
+      "like_count": 2,
+      "dislike_count": 0,
+      "comment_count": 0,
+      "timestamp": "2026-02-03 09:58:45"
+    },
+    {
+      "title": "Playing Civilization VI with a Computer-Use agent",
+      "url": "https://v.redd.it/pxraikg502hg1",
+      "description": "\"With recent advances in VLMs, Computer-Use—AI directly operating a real computer—has gained a lot of attention. That said, most demos still rely on clean, API-controlled environments. To push beyond that, I’m using Civilization VI, a complex turn-based strategy game, as the testbed.\"",
+      "source": "reddit",
+      "score": 0.56,
+      "star_rating": "⭐⭐⭐",
+      "tags": [
+        "llm",
+        "research"
+      ],
+      "topic": "research",
+      "why_it_matters": "\"This article showcases a novel application of Computer-Use agents in a complex game environment, demonstrating the potential of AI to operate in unstructured environments.\"",
+      "target_audience": "researcher",
+      "reasoning": "The content provides technical depth by explaining how the agent operates in Civilization VI, and it is moderately relevant to the field of AI/ML. However, it lacks actionability as it is a research-f",
+      "engagement": 2.0,
+      "like_count": 2,
+      "dislike_count": 0,
+      "comment_count": 4,
+      "timestamp": "2026-02-02 15:26:52"
+    },
+    {
+      "title": "How to write a WebSocket Server in Simple Steps",
+      "url": "https://betterengineers.substack.com/p/build-a-websocket-server-and-test",
+      "description": "\"Link to betterengineers.substack.com\"",
+      "source": "reddit",
+      "score": 0.14,
+      "star_rating": "⭐",
+      "tags": [
+        "tools",
+        "tutorial"
+      ],
+      "topic": "tutorial",
+      "why_it_matters": "\"This tutorial provides a step-by-step guide on how to write a WebSocket server, which can be useful for developers who want to learn about this specific technology.\"",
+      "target_audience": "developer",
+      "reasoning": "The content is not specifically related to AI/ML/LLM and lacks technical depth. It's a tutorial on a general programming topic, but it may still be of interest to developers who want to learn about We",
+      "engagement": 1.0,
+      "like_count": 1,
+      "dislike_count": 0,
+      "comment_count": 0,
+      "timestamp": "2026-02-03 10:10:51"
+    }
+  ],
+  "summary": "\"🤖 GenAI News Digest - 6 High-Quality Technical AI/ML Updates\""
+}
