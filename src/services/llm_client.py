@@ -14,8 +14,21 @@ class OllamaClient:
         if self.base_url.endswith('/v1'):
             self.base_url = self.base_url[:-3]
     
+    def set_model(self, model_name: str = None, use_fast: bool = True):
+        """Set the model to use - either by name or by speed preference"""
+        if model_name:
+            self.model = model_name
+            print(f"🔄 Switched to model: {self.model}")
+        else:
+            if use_fast:
+                self.model = config.OLLAMA_MODEL_FAST
+                print(f"🔄 Using fast model: {self.model}")
+            else:
+                self.model = config.OLLAMA_MODEL_SLOW
+                print(f"🔄 Using slow but powerful model: {self.model}")
+    
     def generate(self, prompt: str, system_prompt: str = None, temperature: float = 0.1, timeout: int = 120) -> str:
-        """Generate text using Ollama API directly with configurable timeout"""
+        """Generate text using Ollama API directly"""
         
         # Combine system and user prompts
         full_prompt = prompt
@@ -57,9 +70,9 @@ class OllamaClient:
     Provide a detailed evaluation with a precise relevance score between 0.0 and 1.0:
 
     Scoring Guidelines:
-    - 0.0-0.2: Completely irrelevant, no technical value
+    - 0.0-0.2: Completely irrelevant, no technical
+ value
     - 0.3-0.4: Somewhat related but lacks depth or actionability  
-
     - 0.5-0.6: Moderately relevant, some technical content
     - 0.7-0.8: Highly relevant, good technical depth
     - 0.9-1.0: Exceptional content, cutting-edge and highly actionable
@@ -111,6 +124,19 @@ class OllamaClient:
         except Exception as e:
             print(f"LLM connection test failed: {e}")
             return False
+    
+    def list_available_models(self) -> list:
+        """List all available models in Ollama"""
+        try:
+            response = requests.get(f"{self.base_url}/api/tags", timeout=10)
+            response.raise_for_status()
+            
+            result = response.json()
+            models = [model['name'] for model in result.get('models', [])]
+            return models
+        except Exception as e:
+            print(f"Failed to list models: {e}")
+            return []
 
 # Global LLM client
 llm = OllamaClient()

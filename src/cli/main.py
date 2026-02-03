@@ -38,11 +38,11 @@ def test_setup():
     print("🤖 Testing LLM connection...")
     try:
         if llm.test_connection():
-            print("✅ LLM connection successful")
+            print(f"✅ LLM connection successful (using model: {llm.model})")
         else:
             print("❌ LLM connection failed - make sure Ollama is running")
             print("   Run: ollama serve")
-            print("   Then: ollama pull llama3:8b-instruct-q4_K_M")
+            print(f"   Then: ollama pull {llm.model}")
             return False
     except Exception as e:
         print(f"❌ LLM error: {e}")
@@ -80,12 +80,20 @@ def fetch_content():
     print(f"📊 Total items: {total_items}, New items: {new_items}")
     return new_items
 
-def evaluate_content(limit: int = None, force: bool = False):
+def evaluate_content(limit: int = None, force: bool = False, use_slow_model: bool = False):
     """Evaluate content with LLM"""
     print("🤖 Evaluating content...")
     
     if force:
         print("  🔄 Force mode: Will re-evaluate existing items")
+    
+    # Set model based on speed preference
+    if use_slow_model:
+        llm.set_model(use_fast=False)  # Use slow but powerful model
+    else:
+        llm.set_model(use_fast=True)   # Use fast model
+    
+    print(f"  🧠 Using model: {llm.model}")
     
     # Get recent items
     recent_items = db.get_recent_items(hours=config.CONTENT_HOURS_LOOKBACK)
@@ -161,6 +169,7 @@ def evaluate_content(limit: int = None, force: bool = False):
 
 def show_status():
     """Show database status and recent items"""
+    
     print("📊 Database Status")
     print("=" * 30)
     
@@ -202,9 +211,17 @@ def show_status():
             print(f"    Product: {'✅' if product_eval.decision else '❌'} ({product_eval.star_rating})")
         print()
 
-def generate_digests():
+def generate_digests(use_slow_model: bool = False):
     """Generate and save digests with audio"""
     print("📝 Generating digests...")
+    
+    # Set model based on speed preference
+    if use_slow_model:
+        llm.set_model(use_fast=False)  # Use slow but powerful model
+    else:
+        llm.set_model(use_fast=True)   # Use fast model
+    
+    print(f"  🧠 Using model: {llm.model}")
     
     try:
         results = digest_builder.build_all_digests()
@@ -248,61 +265,51 @@ def test_telegram():
         print("❌ Failed to send test message")
         print("💡 Check your credentials and internet connection")
 
-def fix_missing_tags():
-    """Fix missing tags in existing evaluations"""
-    print("🏷️ Fixing missing tags in existing evaluations...")
+def list_models():
+    """List available models in Ollama"""
+    print("🧠 Available LLM Models:")
+    print("=" * 30)
     
-    # Get all evaluations without tags
-    with db.get_connection() as conn:
-        cursor = conn.execute("""
-            SELECT e.item_id, e.persona, i.title, i.description, i.source_type
-            FROM evaluations e
-            JOIN ingested_items i ON e.item_id = i.id
-            WHERE e.tags IS NULL OR e.tags = '[]' OR e.tags = ''
-        """)
-        
-        items_to_fix = cursor.fetchall()
+    models = llm.list_available_models()
     
-    if not items_to_fix:
-        print("✅ No items need tag fixes")
+    if not models:
+        print("❌ Failed to retrieve models. Make sure Ollama is running.")
         return
     
-    print(f"📊 Found {len(items_to_fix)} evaluations missing tags")
-    
-    fixed_count = 0
-    for row in items_to_fix:
-        try:
-            # Create a mock item for tag assignment
-            from src.models.schemas import IngestedItem, SourceType, PersonaType
-            from datetime import datetime
-            
-            mock_item = IngestedItem(
-                id=row['item_id'],
-                title=row['title'],
-                description=row['description'],
-                url="",
-                source_type=SourceType(row['source_type']),
-                source_id="",
-                timestamp=datetime.now()
-            )
-            
-            # Assign fallback tags based on persona
-            if row['persona'] == 'genai_news':
-                tags = genai_evaluator._assign_fallback_tags(mock_item)
-            else:
-                tags = product_evaluator._assign_fallback_tags(mock_item)
-            
-            # Update the evaluation
-            persona = PersonaType(row['persona'])
-            if db.update_evaluation_tags(row['item_id'], persona, tags):
-                fixed_count += 1
-                print(f"  ✅ Fixed tags for: {row['title'][:50]}... → {tags}")
-            
-        except Exception as e:
-            print(f"  ❌ Failed to fix: {row['title'][:50]}... → {e}")
-    
-    print(f"🎉 Fixed tags for {fixed_count}/{len(items_to_fix)} evaluations")
+    print(f"Found {len(models)} models:")
+    for model in models:
+        if model == config.OLLAMA_MODEL_FAST:
+            print(f"  • {model} (FAST default)")
+        elif model == config.OLLAMA_MODEL_SLOW:
+            print(f"  • {model} (SLOW powerful)")
+        else:
+            print(f"  • {model}")
 
+    
+    print(f"\nCurrent model: {llm.model}")
+    print("\nTo use a specific model:")
+    print("  python -m src.cli.main evaluate --model llama3:8b")
+    print("  python -m src.cli.main digest --slow")
+
+def run_pipeline(use_slow_model: bool = False):
+    """Run full pipeline with model selection"""
+    print("🔄 Running full pipeline...")
+    
+    # Set model based on speed preference
+    if use_slow_model:
+        llm.set_model(use_fast=False)  # Use slow but powerful model
+    else:
+        llm.set_model(use_fast=True)   # Use fast model
+    
+    print(f"  🧠 Using model: {llm.model}")
+    
+    if test_setup():
+        fetch_content()
+        evaluate_content(limit=30, use_slow_model=use_slow_model)
+        generate_digests(use_slow_model=use_slow_model)
+        print("✅ Complete pipeline finished!")
+    else:
+        print("❌ Setup test failed, aborting pipeline")
 
 def main():
     """Main CLI entry point"""
@@ -314,16 +321,33 @@ def main():
         print("Commands:")
         print("  test     - Test system setup")
         print("  fetch    - Fetch content from sources")
-        print("  evaluate [N] [--force] - Evaluate content")
-        print("  digest   - Generate digest files")
+        print("  evaluate [N] [--force] [--slow] - Evaluate content")
+        print("  digest   [--slow] - Generate digest files")
         print("  status   - Show database status")
-        print("  clear    - Clear all data from database")
+        print("  models   - List available LLM models")
         print("  telegram - Test Telegram delivery")
-        print("  fix-tags - Fix missing tags in existing evaluations") 
-        print("  run      - Full pipeline (fetch + evaluate + digest)")
+        print("  run      [--slow] - Full pipeline (fetch + evaluate + digest)")
         return
     
     command = sys.argv[1]
+    
+    # Parse common arguments
+    use_slow_model = "--slow" in sys.argv
+    specific_model = None
+    
+    # Check for specific model argument
+    for i, arg in enumerate(sys.argv):
+        if arg == "--model" and i+1 < len(sys.argv):
+            specific_model = sys.argv[i+1]
+            break
+    
+    # Set specific model if provided
+    if specific_model:
+        llm.set_model(specific_model)
+    elif use_slow_model:
+        llm.set_model(use_fast=False)  # Use slow model
+    else:
+        llm.set_model(use_fast=True)   # Use fast model (default)
     
     if command == "test":
         if test_setup():
@@ -333,8 +357,12 @@ def main():
     
     elif command == "fetch":
         fetch_content()
+    
     elif command == "telegram":
         test_telegram()
+    
+    elif command == "models":
+        list_models()
     
     elif command == "evaluate":
         # Parse arguments
@@ -344,32 +372,25 @@ def main():
         for arg in sys.argv[2:]:
             if arg == "--force":
                 force = True
-            else:
+            elif arg not in ["--slow", "--model"] and not arg.startswith("--"):
                 try:
                     limit = int(arg)
                 except ValueError:
-                    print(f"Invalid argument: {arg}")
-                    return
+                    if not specific_model:  # Don't show error if it's the model name
+                        print(f"Invalid argument: {arg}")
+                        return
         
-        evaluate_content(limit, force)
+        evaluate_content(limit, force, use_slow_model)
     
     elif command == "digest":
-        generate_digests()
+        generate_digests(use_slow_model)
     
     elif command == "status":
         show_status()
     
     elif command == "run":
-        print("🔄 Running full pipeline...")
-        if test_setup():
-            fetch_content()
-            evaluate_content(limit=30)
-            generate_digests()
-            print("✅ Complete pipeline finished!")
-        else:
-            print("❌ Setup test failed, aborting pipeline")
-    elif command == "fix-tags":
-        fix_missing_tags()
+        run_pipeline(use_slow_model)
+    
     else:
         print(f"Unknown command: {command}")
 

@@ -171,10 +171,15 @@ class DigestBuilder:
             if why_it_matters and not (why_it_matters.startswith('"') and why_it_matters.endswith('"')):
                 why_it_matters = f'"{why_it_matters}"'
             
+            # Format description as a quote
+            description = self._clean_description(item['description'])
+            if description and not description.startswith('"'):
+                description = f'"{description}"'
+            
             digest_item = {
                 "title": item['title'],
                 "url": item['url'],
-                "description": self._clean_description(item['description']),
+                "description": description,  # Now quoted
                 "source": item['source_type'],
                 "score": item['relevance_score'],
                 "star_rating": item.get('star_rating', '⭐'),
@@ -271,10 +276,15 @@ class DigestBuilder:
             if why_it_matters and not (why_it_matters.startswith('"') and why_it_matters.endswith('"')):
                 why_it_matters = f'"{why_it_matters}"'
             
+            # Format description as a quote
+            description = self._clean_description(item['description'])
+            if description and not description.startswith('"'):
+                description = f'"{description}"'
+            
             digest_item = {
                 "title": item['title'],
                 "url": item['url'],
-                "description": self._clean_description(item['description']),
+                "description": description,  # Now quoted
                 "source": item['source_type'],
                 "score": item['relevance_score'],
                 "star_rating": item.get('star_rating', '⭐'),
@@ -349,7 +359,7 @@ class DigestBuilder:
         print(f"    📄 Saved: {json_path.name}, {md_path.name}")
     
     def _convert_to_markdown(self, digest: Dict[str, Any]) -> str:
-        """Convert digest to enhanced Markdown format"""
+        """Convert digest to enhanced Markdown format with quote styling"""
         md = f"# {digest['summary']}\n\n"
         md += f"**Generated:** {digest['generated_at']}\n"
         md += f"**Items:** {digest['count']}\n"
@@ -381,42 +391,18 @@ class DigestBuilder:
             if item_id not in unique_items:
                 unique_items[item_id] = item
         
-        # Group unique items by their primary tag (first tag)
-        tagged_items = {}
-        untagged_items = []
-        
-        for item in unique_items.values():
-            tags = item.get('tags', [])
-            if tags:
-                # Use only the first tag to avoid duplication
-                primary_tag = tags[0]
-                if primary_tag not in tagged_items:
-                    tagged_items[primary_tag] = []
-                tagged_items[primary_tag].append(item)
-            else:
-                untagged_items.append(item)
-        
-        # Display items by tags
+        # Display all items in order without tag grouping
         item_counter = 1
-        for tag, items in tagged_items.items():
-            # md += f"## 🏷️ {tag.upper()}\n\n"
-            for item in items:
-                md += self._format_item_markdown(item, item_counter)
-                item_counter += 1
-        
-        # Display untagged items
-        if untagged_items:
-            md += f"## 📰 OTHER\n\n"
-            for item in untagged_items:
-                md += self._format_item_markdown(item, item_counter)
-                item_counter += 1
+        for item in unique_items.values():
+            md += self._format_item_markdown(item, item_counter)
+            item_counter += 1
         
         return md
     
     def _format_item_markdown(self, item: Dict[str, Any], counter: int) -> str:
-        """Format individual item for markdown"""
+        """Format individual item for markdown with quote styling"""
         title = item['title'][:80] + "..." if len(item['title']) > 80 else item['title']
-        md = f"### {counter}. [{title}]({item['url']})\n\n"
+        md = f"## {counter}. [{title}]({item['url']})\n\n"
         
         # Enhanced metadata with engagement
         md += f"**Rating:** {item.get('star_rating', '⭐')} | **Source:** {item['source']} | **Engagement:** {item.get('engagement', 'N/A')}"
@@ -435,16 +421,10 @@ class DigestBuilder:
         
         md += "\n\n"
         
-        # Tags - show all tags but don't duplicate content
+        # Tags - show without emojis, just clean text
         tags = item.get('tags', [])
         if tags:
-            tag_emojis = {'llm': '🤖', 'research': '🔬', 'tools': '🛠️', 'tutorial': '📚', 'industry': '🏢', 
-                         'saas': '💼', 'ai-tool': '🤖', 'startup': '🚀', 'funding': '💰'}
-            tag_display = []
-            # for tag in tags:
-                # emoji = tag_emojis.get(tag, '🏷️')
-                # tag_display.append(f"{emoji} {tag}")
-            # md += f"**Tags:** {' | '.join(tag_display)}\n\n"
+            md += f"**Tags:** {' | '.join(tags)}\n\n"
         
         # Topic and audience
         if item.get('topic'):
@@ -452,16 +432,17 @@ class DigestBuilder:
         if item.get('target_audience'):
             md += f"**Target Audience:** {item['target_audience']}\n\n"
         
-        # Why it matters (already has quotes from digest building)
-        if item.get('why_it_matters'):
-            md += f"**Why it matters:** {item['why_it_matters']}\n\n"
-        
-        # Description
-        description = item['description']
+        # Description as blockquote (already has quotes, format as blockquote)
+        description = item['description'].strip('"')  # Remove quotes for blockquote
         if description and "Content summary not available" not in description:
-            md += f"{description}\n\n"
+            md += f"> {description}\n\n"
         else:
-            md += f"*[View full content at source link above]*\n\n"
+            md += f"> *[View full content at source link above]*\n\n"
+        
+        # Why it matters as blockquote (already has quotes, format as blockquote)
+        if item.get('why_it_matters'):
+            why_it_matters = item['why_it_matters'].strip('"')  # Remove quotes for blockquote
+            md += f"**Why it matters:**\n> {why_it_matters}\n\n"
         
         md += "---\n\n"
         return md

@@ -112,7 +112,7 @@ class TelegramDeliveryService:
         return asyncio.run(self._send_audio_async(audio_path, caption))
     
     async def _send_digest_async(self, digest: Dict[str, Any]) -> bool:
-        """Send enhanced digest to Telegram without duplication"""
+        """Send enhanced digest to Telegram with quote styling"""
         if not self.is_configured():
             self.logger.warning("Telegram delivery not configured, skipping")
             return False
@@ -164,39 +164,12 @@ class TelegramDeliveryService:
                 if item_id not in unique_items:
                     unique_items[item_id] = item
             
-            # Group unique items by their primary tag (first tag only)
-            tagged_items = {}
-            untagged_items = []
-            
-            for item in unique_items.values():
-                tags = item.get('tags', [])
-                if tags:
-                    # Use only the first tag to prevent duplication
-                    primary_tag = tags[0]
-                    if primary_tag not in tagged_items:
-                        tagged_items[primary_tag] = []
-                    tagged_items[primary_tag].append(item)
-                else:
-                    untagged_items.append(item)
-            
-            # Send items by tag groups
+            # Send all items in order without tag grouping
             item_counter = 1
-            for tag, tag_items in tagged_items.items():
-                # Send tag header
-                # await self._send_message_async(f"🏷️ <b>{tag.upper()}</b>")
-                
-                for item in tag_items:
-                    await self._send_item_message(item, item_counter)
-                    item_counter += 1
-                    await asyncio.sleep(0.5)
-            
-            # Send untagged items
-            if untagged_items:
-                await self._send_message_async("📰 <b>OTHER</b>")
-                for item in untagged_items:
-                    await self._send_item_message(item, item_counter)
-                    item_counter += 1
-                    await asyncio.sleep(0.5)
+            for item in unique_items.values():
+                await self._send_item_message(item, item_counter)
+                item_counter += 1
+                await asyncio.sleep(0.5)
             
             return True
             
@@ -205,7 +178,7 @@ class TelegramDeliveryService:
             return False
 
     async def _send_item_message(self, item: Dict[str, Any], counter: int):
-        """Send individual item message with enhanced formatting"""
+        """Send individual item message with quote styling"""
         title = item.get('title', 'No Title')
         url = item.get('url', '')
         star_rating = item.get('star_rating', '⭐')
@@ -215,11 +188,10 @@ class TelegramDeliveryService:
         message = f"<b>{counter}. <a href='{url}'>{safe_title}</a></b>\n\n"
         message += f"Rating: {star_rating} | Source: {source}"
         
-        # Show all tags for this item (even though we only group by first tag)
+        # Show tags without emojis
         tags = item.get('tags', [])
-        if tags and len(tags) > 1:
-            tag_display = ', '.join(tags[1:])  # Show remaining tags
-            message += f" | Tags: {tag_display}"
+        if tags:
+            message += f" | Tags: {', '.join(tags)}"
         
         # Add engagement metrics
         engagement_parts = []
@@ -235,21 +207,22 @@ class TelegramDeliveryService:
         
         message += "\n\n"
         
-        # Add description
-        description = item.get('description', '')
+        # Add description with quote styling (remove quotes and add quote formatting)
+        description = item.get('description', '').strip('"')
         if description and len(description) > 0:
             if len(description) > 300:
                 description = description[:297] + "..."
             safe_description = self._escape_html(description)
-            message += f"{safe_description}\n\n"
+            # Use blockquote formatting for Telegram
+            message += f"<blockquote>{safe_description}</blockquote>\n\n"
         
-        # Add why it matters (remove quotes for display)
+        # Add why it matters with quote styling (remove quotes and add quote formatting)
         why_it_matters = item.get('why_it_matters', '').strip('"')
         if why_it_matters:
             if len(why_it_matters) > 150:
                 why_it_matters = why_it_matters[:147] + "..."
             safe_why = self._escape_html(why_it_matters)
-            message += f"<i>Why it matters: {safe_why}</i>"
+            message += f"<b>Why it matters:</b>\n<blockquote><i>{safe_why}</i></blockquote>"
         
         await self._send_message_async(message)
     

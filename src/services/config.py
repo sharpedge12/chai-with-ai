@@ -23,7 +23,11 @@ class Config:
     
     # LLM Configuration
     OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")
-    OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3:8b-instruct-q4_K_M")
+    
+    # Model configuration with fast and slow options
+    OLLAMA_MODEL_FAST = os.getenv("OLLAMA_MODEL_FAST", "mistral:instruct")  # Fast default model
+    OLLAMA_MODEL_SLOW = os.getenv("OLLAMA_MODEL_SLOW", "llama3:8b-instruct-q4_K_M")  # Slower but more powerful
+    OLLAMA_MODEL = OLLAMA_MODEL_FAST  # Default to fast model
     
     # Persona Settings
     PERSONA_GENAI_NEWS_ENABLED = os.getenv("PERSONA_GENAI_NEWS_ENABLED", "true").lower() == "true"
