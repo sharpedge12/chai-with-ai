@@ -1,4 +1,4 @@
-# AI-DIGEST-SYSTEM
+# Chai with AI
 
 An automated Python system for creating and distributing daily AI and software news digests with seamless Telegram integration.
 
@@ -6,27 +6,32 @@ An automated Python system for creating and distributing daily AI and software n
 
 ## 📋 Description
 
-**AI-DIGEST-SYSTEM** is a sophisticated Python application designed to automatically generate daily news digests focused on AI and software development. The system features seamless Telegram integration for efficient news distribution and includes advanced components for data processing, AI models, and workflow management.
+**Chai with AI** is your personal, automated system for creating and distributing daily AI and software news digests. It intelligently curates over 200 articles daily, provides audio summaries for on-the-go listening, and delivers everything in a beautifully clean format directly to your Telegram.
 
 ---
 
 ## 🚀 Features
 
-- **Automated Daily Digests:** Automatically creates comprehensive news summaries.
-- **Telegram Integration:** Seamless distribution through Telegram channels.
-- **Modular Architecture:** Well-organized components for scalability and maintenance.
-- **AI-Powered:** Leverages LLM capabilities for intelligent content processing.
-- **Configurable Workflows:** Flexible digest building and distribution workflows.
+-   **🎧 Audio Summaries:** Listen to a summary of your entire news digest, perfect for multitasking and catching up on the go.
+-   **📈 Comprehensive Coverage:** Fetches and processes an average of over 200 articles daily, so you get a complete picture of the latest trends.
+-   **💡 Intelligent Insights:** Every article comes with a concise summary and a "Why it Matters" section, giving you the key takeaways instantly.
+-   **⭐ Rich Engagement Metrics:** See the source, likes, dislikes, comments, and a star-based rating for each article to gauge community sentiment and quality.
+-   **🏷️ Smart Tagging:** Save time with relevant tags on every article, helping you to quickly filter and find the news that matters most to you.
+-   **✨ Clean & Beautiful Display:** All information is presented in a beautifully designed and clean interface for an exceptional user experience.
+-   **⚡ High-Performance Processing:** Engineered for speed and efficiency, using batching, multiprocessing, and other optimizations to deliver your digest faster.
+-   **🤖 AI-Powered:** Leverages LLM capabilities for intelligent content processing, summarization, and tagging.
+-   **📲 Seamless Telegram Integration:** Distributes the final digest automatically through your configured Telegram channels.
+-   **🔧 Modular & Scalable:** Built with a well-organized and modular architecture that allows for easy maintenance and future expansion.
 
 ---
 
 ## 🛠️ Technologies Used
 
-- **Python:** Core programming language
-- **Telegram API:** For news distribution
-- **LLM Integration:** AI-powered content processing
-- **Database Management:** Data storage and retrieval
-- **Caching Services:** Performance optimization
+-   **Python:** Core programming language
+-   **Telegram API:** For news distribution
+-   **LLM Integration:** AI-powered content processing
+-   **Database Management:** Data storage and retrieval
+-   **Caching Services:** Performance optimization
 
 ---
 
